@@ -1,0 +1,112 @@
+---
+title: "Practical Machine Learning Project"
+author: "Mario Solano"
+date: "Thursday, April 26, 2015"
+output: html_document
+---
+## Overview
+Now in the second portion of the class, we're going to analyze the ToothGrowth data in the R datasets package.
+- Load the ToothGrowth data and perform some basic exploratory data analyses
+- Provide a basic summary of the data.
+- Use confidence intervals and/or hypothesis tests to compare tooth growth by supp and dose. (Only use the techniques from class, even if there's other approaches worth considering)
+- State your conclusions and the assumptions needed for your conclusions.
+
+
+
+
+### Load Libraries
+``` {r-load-libraries}
+      library(AppliedPredictiveModeling)
+      library(rattle)
+      library(rpart.plot)
+      library(randomForest)
+      library(caret)
+      
+      setwd("C:\\Users\\msolanoo\\Documents\\Coursera\\Data Science\\Practical Machine Learning\\Project")
+```
+
+### Load datasets
+Load training datasets and testing
+
+``` {r-load-datasets}
+      df_training <- read.csv(file="pml-training.csv", na.strings=c("NA",""), header=TRUE)
+
+      df_testing <- read.csv(file="pml-testing.csv", na.strings=c("NA",""), header=TRUE)
+```
+
+### Cleaning the data
+There are a lot of missing values and NAs, which we have to remove in order for our models to work
+
+First, define the function for identifying these columns in data sets
+
+``` {r-clean-data-function}
+      nonNAs <- function(x) {
+          as.vector(apply(x, 2, function(x) length(which(!is.na(x)))))
+      }
+```
+
+Apply the function to the Training Data.
+
+``` {r-clean-training-data}
+      colcnts <- nonNAs(df_training)
+      drops <- c()
+      
+      for (cnt in 1:length(colcnts)) {
+          if (colcnts[cnt] < nrow(df_training)) {
+          drops <- c(drops, cnt)
+        }
+      }
+      
+      df_training <- df_training[-c(drops)]
+      df_training <- df_training[-c(1,6)]
+```
+
+Apply the function to the Testing Data.
+
+``` {r-clean-testing-data}
+      colcnts <- nonNAs(df_testing)
+      drops <- c()
+
+      for (cnt in 1:length(colcnts)) {
+          if (colcnts[cnt] < nrow(df_testing)) {
+              drops <- c(drops, cnt)
+          }
+      }
+
+      df_testing <- df_testing[-c(drops)]
+      df_testing <- df_testing[-c(1,6)]
+```
+
+### Split the Training Data for training
+The training data set was split in 60% training and 40% testing
+
+``` {r-split-data}
+      inTrain <- createDataPartition(y=df_training$classe, p=0.6, list=FALSE)
+      myTraining <- df_training[inTrain, ]; myTesting <- df_training[-inTrain, ]
+      dim(myTraining)
+      dim(myTesting)
+
+```
+
+### Algorythm using Decision Tree
+
+``` {r-model-decision-tree}
+      modFitA1 <- rpart(classe ~ ., data=myTraining, method="class")
+      fancyRpartPlot(modFitA1)
+      predictionsA1 <- predict(modFitA1, myTesting, type = "class")
+      confusionMatrix(predictionsA1, myTesting$classe)
+```
+
+### Algorythm using Random Forest
+
+``` {r-model-random-forest}
+      modFitA2 <- randomForest(classe ~ ., data=myTraining)
+      predictionsA2 <- predict(modFitA2, myTesting, type = "class")
+      confusionMatrix(predictionsA2, myTesting$classe)
+```
+
+### Applying the model to the 20 test cases
+
+``` {r-test-20cases}
+      predict(modFitA1, df_testing, type = "class")
+```
